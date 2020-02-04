@@ -130,10 +130,10 @@ class TetheredDriveApp(Tk):
             tkMessageBox.showinfo('Uh-oh', "Lost connection to the robot!")
             connection = None
 
-        print ' '.join([ str(ord(c)) for c in command ])
-        self.text.insert(END, ' '.join([ str(ord(c)) for c in command ]))
-        self.text.insert(END, '\n')
-        self.text.see(END)
+        # print ' '.join([ str(ord(c)) for c in command ])
+        # self.text.insert(END, ' '.join([ str(ord(c)) for c in command ]))
+        # self.text.insert(END, '\n')
+        # self.text.see(END)
 
     # getDecodedBytes returns a n-byte value decoded using a format string.
     # Whether it blocks is based on how the connection was set up.
@@ -153,7 +153,7 @@ class TetheredDriveApp(Tk):
 
     #goes 7.75 inches in one second 
     def goForward(self, length):
-        range = length/7.75
+        range = float(length)/7.75
         print range
         t_end = time.time() + range
         while time.time() < t_end:
@@ -189,18 +189,24 @@ class TetheredDriveApp(Tk):
                 self.sendCommandASCII('128')
             elif k == 'S': # Safe
                 self.sendCommandASCII('131')
-            elif k == 'F': # Full
-                self.sendCommandASCII('132')
-            elif k == 'C': # Clean
-                self.sendCommandASCII('135')
-            elif k == 'D': # Dock
-                self.sendCommandASCII('143')
-            elif k == 'SPACE': # Beep
-                self.sendCommandASCII('140 3 1 64 16 141 3')
-            elif k == 'R': # Reset
-                self.sendCommandASCII('7')
+            # elif k == 'F': # Full
+            #     self.sendCommandASCII('132')
+            # elif k == 'C': # Clean
+            #     self.sendCommandASCII('135')
+            # elif k == 'D': # Dock
+            #     self.sendCommandASCII('143')
+            # elif k == 'SPACE': # Beep
+            #     self.sendCommandASCII('140 3 1 64 16 141 3')
+            # elif k == 'R': # Reset
+            #     self.sendCommandASCII('7')
             elif k =='W':
-                self.goForward(25)
+
+                #path = []
+                with open('robotpath.txt') as my_file:
+                    for line in my_file:
+                        #path.append(line)
+                        self.goForward(line)
+
             elif k == 'T':
                 self.turnRight()   
             elif k == 'L':
@@ -244,13 +250,9 @@ class TetheredDriveApp(Tk):
             # compute left and right wheel velocities
             vr = velocity + (rotation/2)
             vl = velocity - (rotation/2)
-            # print "here is one wheel" + str(vr) 
-            # print "here is other wheel" str(vl)
             
-
             # create drive command
             cmd = struct.pack(">Bhh", 145, vr, vl)
-            # print "here is cmd" + cmd
             if cmd != self.callbackKeyLastDriveCommand:
                 self.sendCommandRaw(cmd)
                 self.callbackKeyLastDriveCommand = cmd
@@ -322,3 +324,13 @@ class TetheredDriveApp(Tk):
 if __name__ == "__main__":
     app = TetheredDriveApp()
     app.mainloop()
+
+
+                # self.goForward(25)
+                # self.turnRight()
+                # self.goForward(10)
+                # self.turnRight()
+                # self.goForward(5)
+                # self.turnRight()
+                # self.goForward(5)
+                # self.turnRight()
