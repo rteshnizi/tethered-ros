@@ -1,45 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# 27 May 2015
-
-###########################################################################
-# Copyright (c) 2015 iRobot Corporation
-# http://www.irobot.com/
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#   Redistributions of source code must retain the above copyright
-#   notice, this list of conditions and the following disclaimer.
-#
-#   Redistributions in binary form must reproduce the above copyright
-#   notice, this list of conditions and the following disclaimer in
-#   the documentation and/or other materials provided with the
-#   distribution.
-#
-#   Neither the name of iRobot Corporation nor the names
-#   of its contributors may be used to endorse or promote products
-#   derived from this software without specific prior written
-#   permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###########################################################################
+#[[R1, 00-1,00-2,D1], [R2, 01-0, 01-3, D2]]
+#(x,y) for corrdinates
+#start at R1 go to obstacle 0 point 1 go to obstacle 0 point 2 go to destination one repeat for robot 2
 
 from Tkinter import *
 import tkMessageBox
 import tkSimpleDialog
 import time
+import json
+import math
 
 import struct
 import sys, glob # for listing serial ports
@@ -51,6 +19,12 @@ except ImportError:
     raise
 
 connection = None
+robotName = "R1"
+robotPathFULL = [['R1', '00-1','00-2','D1'], ['R2', '01-0', '01-3', 'D2']]
+robotPath = ['R1', '00-1','00-2','D1']
+inputValues = None
+robotRoute = None
+
 
 TEXTWIDTH = 40 # window width, in characters
 TEXTHEIGHT = 16 # window height, in lines
@@ -62,15 +36,29 @@ helpText = """\
 Supported Keys:
 P\tPassive
 S\tSafe
-F\tFull
-C\tClean
-D\tDock
-R\tReset
 Space\tBeep
 Arrows\tMotion
-
 If nothing happens after you connect, try pressing 'P' and then 'S' to get into safe mode.
 """
+class Route:
+    def __init__(self,name, start):
+        self.name = name
+        self.start = start
+        self.end = None
+        self.path = []
+        self.path.append(start)
+
+    def setEnd(self,arr):
+        self.end = arr
+
+    def addToPath(self,arr):
+        self.path.append(arr)
+        #self.path = path.append(start[0])
+
+class Input:
+    def __init__(self,data):
+        self.__dict__ = json.loads(data)
+       
 
 class TetheredDriveApp(Tk):
     # static variables for keyboard callback -- I know, this is icky
@@ -163,13 +151,53 @@ class TetheredDriveApp(Tk):
         return 
 
     #turns right by 90 degrees
-    def turnRight(self):
-        t_end = time.time() + 1.45 
+    def turnRight(self, angle):
+        turn = (float(angle)*1.45)/90
+        print turn
+        t_end = time.time() + turn 
         while time.time() < t_end:
             self.sendCommandASCII('145 255 106 0 150')
         self.sendCommandASCII('145 0 0 0 0')
 
         return  
+
+    def createRoute(self):
+        global robotRoute
+        for i in range(len(robotPath)): 
+            #print robotPath[i]
+            if ( robotPath[i] != "R1" and robotPath[i] != "D1"):
+                obtArr = robotPath[i][0] + robotPath[i][1]
+                obtArr = int(obtArr)
+                obtNum = robotPath[i][3]
+                obtNum = int(obtNum)
+                cord = inputValues.obstacles[obtArr][obtNum]
+                cord = cord.split(',')
+                cord[0] = int(cord[0])
+                cord[1] = int(cord[1])
+                robotRoute.addToPath(cord)
+                #print type(cord)
+            elif robotPath[i] == "R1":
+                cord = str(inputValues.cable[0])
+                cord = cord.split(',')
+                cord[0] = int(cord[0])
+                cord[1] = int(cord[1])
+                robotRoute = Route (robotName,cord)
+
+            elif robotPath[i] == "D1":
+                cord = inputValues.destinations[0]
+                cord = cord.split(',')
+                cord[0] = int(cord[0])
+                cord[1] = int(cord[1])
+                robotRoute.addToPath(cord)
+                robotRoute.setEnd(cord)
+                
+    def getLength(self, list1,list2):
+        return math.sqrt((list1[0]-list2[0])**2 +(list1[1]-list2[1])**2 )
+        
+        
+    def determineLength(self):
+        for i in range(len(robotRoute.path)-1):
+            print self.getLength(robotRoute.path[i],robotRoute.path[i+1])
 
     #turns left by 90 degrees
     def turnLeft(self):
@@ -183,32 +211,23 @@ class TetheredDriveApp(Tk):
     def callbackKey(self, event):
         k = event.keysym.upper()
         motionChange = False
+        self.createRoute()
+        print robotRoute.__dict__
+        self.determineLength()
 
         if event.type == '2': # KeyPress; need to figure out how to get constant
             if k == 'P':   # Passive
                 self.sendCommandASCII('128')
             elif k == 'S': # Safe
                 self.sendCommandASCII('131')
-            # elif k == 'F': # Full
-            #     self.sendCommandASCII('132')
-            # elif k == 'C': # Clean
-            #     self.sendCommandASCII('135')
-            # elif k == 'D': # Dock
-            #     self.sendCommandASCII('143')
-            # elif k == 'SPACE': # Beep
-            #     self.sendCommandASCII('140 3 1 64 16 141 3')
-            # elif k == 'R': # Reset
-            #     self.sendCommandASCII('7')
+            elif k == 'SPACE': # Beep
+                self.sendCommandASCII('140 3 1 64 16 141 3')
             elif k =='W':
+                self.createRoute()
+                #self.goForward(7)
 
-                #path = []
-                with open('robotpath.txt') as my_file:
-                    for line in my_file:
-                        #path.append(line)
-                        self.goForward(line)
-
-            elif k == 'T':
-                self.turnRight()   
+            elif k == 'R':
+                self.turnRight(45)   
             elif k == 'L':
                 self.turnLeft()        
             elif k == 'UP':
@@ -258,7 +277,7 @@ class TetheredDriveApp(Tk):
                 self.callbackKeyLastDriveCommand = cmd
 
     def onConnect(self):
-        global connection
+        global connection, inputValues
 
         if connection is not None:
             tkMessageBox.showinfo('Oops', "You're already connected!")
@@ -281,6 +300,10 @@ class TetheredDriveApp(Tk):
                 print "Failed."
                 tkMessageBox.showinfo('Failed', "Sorry, couldn't connect to " + str(port))
 
+        with open('input.json') as f:
+            data = f.read()
+            inputValues = Input(data)
+        return inputValues
 
     def onHelp(self):
         tkMessageBox.showinfo('Help', helpText)
@@ -325,12 +348,3 @@ if __name__ == "__main__":
     app = TetheredDriveApp()
     app.mainloop()
 
-
-                # self.goForward(25)
-                # self.turnRight()
-                # self.goForward(10)
-                # self.turnRight()
-                # self.goForward(5)
-                # self.turnRight()
-                # self.goForward(5)
-                # self.turnRight()
