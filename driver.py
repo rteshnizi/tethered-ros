@@ -8,6 +8,7 @@ import tkSimpleDialog
 import time
 import json
 import math
+import numpy as np 
 
 import struct
 import sys, glob # for listing serial ports
@@ -24,6 +25,7 @@ robotPathFULL = [['R1', '00-1','00-2','D1'], ['R2', '01-0', '01-3', 'D2']]
 robotPath = ['R1', '00-1','00-2','D1']
 inputValues = None
 robotRoute = None
+currentFacingAngle = 90
 
 
 TEXTWIDTH = 40 # window width, in characters
@@ -152,14 +154,27 @@ class TetheredDriveApp(Tk):
 
     #turns right by 90 degrees
     def turnRight(self, angle):
+        print "IN TURN RIGHT: " + str(angle)
         turn = (float(angle)*1.45)/90
-        print turn
+
         t_end = time.time() + turn 
-        while time.time() < t_end:
+        while time.time() <= t_end:
             self.sendCommandASCII('145 255 106 0 150')
         self.sendCommandASCII('145 0 0 0 0')
 
         return  
+
+    #turns left by 90 degrees
+    def turnLeft(self, angle):
+        print "IN TURN LEFT: " + str(angle)
+        turn = (float(angle)*1.45)/90
+        print "Turn:" + str(turn)
+        t_end = time.time() + turn
+        while time.time() <= t_end:
+            self.sendCommandASCII('145 0 150 255 106')
+        self.sendCommandASCII('145 0 0 0 0')
+
+        return 
 
     def createRoute(self):
         global robotRoute
@@ -193,27 +208,50 @@ class TetheredDriveApp(Tk):
                 
     def getLength(self, list1,list2):
         return math.sqrt((list1[0]-list2[0])**2 +(list1[1]-list2[1])**2 )
+
+    def getAngle(self,list1,list2):
+        y = (list2[1] - list1[1]) 
+        x = (list2[0] - list1[0])
+        if ( x == 0 ): 
+            slope = 0
+        else: slope = float(y)/float(x)
+        return   math.degrees(np.arctan(slope))
         
-        
+    def makeSureCurrent(self):
+        time.sleep(4)
+
     def determineLength(self):
+        global currentFacingAngle
         for i in range(len(robotRoute.path)-1):
-            print self.getLength(robotRoute.path[i],robotRoute.path[i+1])
+            print str(i) + ":"
+            leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
+            leng = leng/50
+            ang = self.getAngle(robotRoute.path[i],robotRoute.path[i+1])
+            print "length: " + str(leng)
+            print "angle: " + str(ang)
+            if (ang > 0):
+                currentFacingAngle = currentFacingAngle - ang
+                self.turnRight(currentFacingAngle)
+                self.goForward(leng)
+                self.turnLeft(currentFacingAngle)
+                currentFacingAngle = currentFacingAngle + ang
+            elif (ang < 0 ):
+                currentFacingAngle = ang*-1      
+                self.turnLeft(currentFacingAngle)
+                self.goForward(leng)
+                self.turnRight(currentFacingAngle)
+                currentFacingAngle = 90
+            else:
+                self.goForward(leng)
 
-    #turns left by 90 degrees
-    def turnLeft(self):
-        t_end = time.time() + 1.45 
-        while time.time() < t_end:
-            self.sendCommandASCII('145 0 150 255 106')
-        self.sendCommandASCII('145 0 0 0 0')
-
-        return        
-    
+            print "------------------"
+            self.makeSureCurrent()
+        
     def callbackKey(self, event):
         k = event.keysym.upper()
         motionChange = False
-        self.createRoute()
-        print robotRoute.__dict__
-        self.determineLength()
+        
+        
 
         if event.type == '2': # KeyPress; need to figure out how to get constant
             if k == 'P':   # Passive
@@ -224,12 +262,12 @@ class TetheredDriveApp(Tk):
                 self.sendCommandASCII('140 3 1 64 16 141 3')
             elif k =='W':
                 self.createRoute()
-                #self.goForward(7)
-
+                print robotRoute.__dict__
+                self.determineLength()
             elif k == 'R':
                 self.turnRight(45)   
             elif k == 'L':
-                self.turnLeft()        
+                self.turnLeft(45)        
             elif k == 'UP':
                 self.callbackKeyUp = True
                 motionChange = True
@@ -269,6 +307,8 @@ class TetheredDriveApp(Tk):
             # compute left and right wheel velocities
             vr = velocity + (rotation/2)
             vl = velocity - (rotation/2)
+
+            print str(vr) + "-" +str(vl)
             
             # create drive command
             cmd = struct.pack(">Bhh", 145, vr, vl)
