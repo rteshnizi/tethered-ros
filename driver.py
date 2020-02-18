@@ -144,7 +144,6 @@ class TetheredDriveApp(Tk):
     #goes 7.75 inches in one second 
     def goForward(self, length):
         range = float(length)/7.75
-        print range
         t_end = time.time() + range
         while time.time() < t_end:
             self.sendCommandASCII('145 0 200 0 200')
@@ -154,9 +153,7 @@ class TetheredDriveApp(Tk):
 
     #turns right by 90 degrees
     def turnRight(self, angle):
-        print "IN TURN RIGHT: " + str(angle)
         turn = (float(angle)*1.45)/90
-
         t_end = time.time() + turn 
         while time.time() <= t_end:
             self.sendCommandASCII('145 255 106 0 150')
@@ -166,9 +163,7 @@ class TetheredDriveApp(Tk):
 
     #turns left by 90 degrees
     def turnLeft(self, angle):
-        print "IN TURN LEFT: " + str(angle)
         turn = (float(angle)*1.45)/90
-        print "Turn:" + str(turn)
         t_end = time.time() + turn
         while time.time() <= t_end:
             self.sendCommandASCII('145 0 150 255 106')
@@ -225,7 +220,7 @@ class TetheredDriveApp(Tk):
         for i in range(len(robotRoute.path)-1):
             print str(i) + ":"
             leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
-            leng = leng/50
+            leng = leng/25
             ang = self.getAngle(robotRoute.path[i],robotRoute.path[i+1])
             print "length: " + str(leng)
             print "angle: " + str(ang)
@@ -307,8 +302,6 @@ class TetheredDriveApp(Tk):
             # compute left and right wheel velocities
             vr = velocity + (rotation/2)
             vl = velocity - (rotation/2)
-
-            print str(vr) + "-" +str(vl)
             
             # create drive command
             cmd = struct.pack(">Bhh", 145, vr, vl)
