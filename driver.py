@@ -21,8 +21,10 @@ except ImportError:
 
 connection = None
 robotName = "R1"
-robotPathFULL = [['R1', '00-1','00-2','D1'], ['R2', '01-0', '01-3', 'D2']]
-robotPath = ['R1', '00-1','00-2','D1']
+#robotPathFULL = [['R1', '00-1','00-2','D1'], ['R2', '01-0', '01-3', 'D2']]
+robotPathFULL = [['R1', '00-1', 'D1', '00-2', 'R1'], ['R2', '01-0', '01-3', 'D2']]
+#robotPath = ['R1', '00-1','00-2','D1']
+robotPath = ['R1','00-1', 'D1', '00-2', 'R1']
 inputValues = None
 robotRoute = None
 currentFacingAngle = 90
@@ -153,7 +155,7 @@ class TetheredDriveApp(Tk):
 
     #turns right by 90 degrees
     def turnRight(self, angle):
-        turn = (float(angle)*1.45)/90
+        turn = (float(angle)*1.40)/90
         t_end = time.time() + turn 
         while time.time() <= t_end:
             self.sendCommandASCII('145 255 106 0 150')
@@ -163,7 +165,7 @@ class TetheredDriveApp(Tk):
 
     #turns left by 90 degrees
     def turnLeft(self, angle):
-        turn = (float(angle)*1.45)/90
+        turn = (float(angle)*1.40)/90
         t_end = time.time() + turn
         while time.time() <= t_end:
             self.sendCommandASCII('145 0 150 255 106')
@@ -173,6 +175,7 @@ class TetheredDriveApp(Tk):
 
     def createRoute(self):
         global robotRoute
+        robotRoute = None
         for i in range(len(robotPath)): 
             #print robotPath[i]
             if ( robotPath[i] != "R1" and robotPath[i] != "D1"):
@@ -191,7 +194,10 @@ class TetheredDriveApp(Tk):
                 cord = cord.split(',')
                 cord[0] = int(cord[0])
                 cord[1] = int(cord[1])
-                robotRoute = Route (robotName,cord)
+                if not robotRoute:
+                    robotRoute = Route (robotName,cord)
+                else:
+                    robotRoute.addToPath(cord)
 
             elif robotPath[i] == "D1":
                 cord = inputValues.destinations[0]
@@ -213,40 +219,74 @@ class TetheredDriveApp(Tk):
         return   math.degrees(np.arctan(slope))
         
     def makeSureCurrent(self):
-        time.sleep(4)
+        time.sleep(3)
 
     def determineLength(self):
         global currentFacingAngle
         for i in range(len(robotRoute.path)-1):
-            print str(i) + ":"
-            leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
-            leng = leng/25
-            ang = self.getAngle(robotRoute.path[i],robotRoute.path[i+1])
-            print "length: " + str(leng)
-            print "angle: " + str(ang)
-            if (ang > 0):
-                currentFacingAngle = currentFacingAngle - ang
-                self.turnRight(currentFacingAngle)
-                self.goForward(leng)
-                self.turnLeft(currentFacingAngle)
-                currentFacingAngle = currentFacingAngle + ang
-            elif (ang < 0 ):
-                currentFacingAngle = ang*-1      
-                self.turnLeft(currentFacingAngle)
-                self.goForward(leng)
-                self.turnRight(currentFacingAngle)
-                currentFacingAngle = 90
-            else:
-                self.goForward(leng)
-
-            print "------------------"
+            xDiff = robotRoute.path[i+1][0] - robotRoute.path[i][0]
+            yDiff = robotRoute.path[i+1][1] - robotRoute.path[i][1]
+            print "x diff: " + str(xDiff) +  ", y diff: " + str(yDiff)
+            if ( xDiff != 0 and yDiff != 0 ):
+                print "going from: " + str(robotRoute.path[i]) + "to:" + str(robotRoute.path[i+1])
+                leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
+                leng = leng/10
+                ang = self.getAngle(robotRoute.path[i],robotRoute.path[i+1])
+                print "length: " + str(leng)
+                print "angle: " + str(ang)
+                if (ang > 0):
+                    currentFacingAngle = currentFacingAngle - ang
+                    self.turnRight(currentFacingAngle)
+                    self.goForward(leng)
+                    #self.makeSureCurrent()
+                    self.turnLeft(currentFacingAngle)
+                    currentFacingAngle = currentFacingAngle + ang
+                elif (ang < 0 ):
+                    currentFacingAngle = ang*-1      
+                    self.turnLeft(currentFacingAngle)
+                    self.goForward(leng)
+                    #self.makeSureCurrent()
+                    self.turnRight(currentFacingAngle)
+                    currentFacingAngle = 90
+            elif ( xDiff == 0 ):
+                leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
+                leng = leng/10
+                print "length: " + str(leng)
+                if ( yDiff > 0 ):
+                    print "x diff = 0 and y diff is positive"
+                    print "going from: " + str(robotRoute.path[i]) + "to:" + str(robotRoute.path[i+1])
+                    self.goForward(leng)
+                else:
+                    print "x diff = 0 and y diff is negative"
+                    print "going from: " + str(robotRoute.path[i]) + "to:" + str(robotRoute.path[i+1])
+                    self.turnLeft(180)
+                    self.goForward(leng)
+                    self.turnLeft(180)
+            elif ( yDiff == 0 ):
+                leng = self.getLength(robotRoute.path[i],robotRoute.path[i+1])
+                leng = leng/10
+                print "length: " + str(leng)
+                if ( xDiff > 0 ):
+                    print "x diff is positive and y diff = 0"
+                    print "going from: " + str(robotRoute.path[i]) + "to:" + str(robotRoute.path[i+1])
+                    self.turnRight(90)
+                    self.goForward(leng)
+                    self.turnLeft(90)
+                else:
+                    print "x diff is negative and y diff = 0"
+                    print "going from: " + str(robotRoute.path[i]) + "to:" + str(robotRoute.path[i+1])
+                    self.turnLeft(90)
+                    self.goForward(leng)
+                    self.turnRight(90) 
             self.makeSureCurrent()
+            print "---------------------"
+
+
+
         
     def callbackKey(self, event):
         k = event.keysym.upper()
         motionChange = False
-        
-        
 
         if event.type == '2': # KeyPress; need to figure out how to get constant
             if k == 'P':   # Passive
@@ -259,10 +299,11 @@ class TetheredDriveApp(Tk):
                 self.createRoute()
                 print robotRoute.__dict__
                 self.determineLength()
+                print "We are done"
             elif k == 'R':
-                self.turnRight(45)   
+                self.turnRight(180)   
             elif k == 'L':
-                self.turnLeft(45)        
+                self.turnLeft(180)        
             elif k == 'UP':
                 self.callbackKeyUp = True
                 motionChange = True
