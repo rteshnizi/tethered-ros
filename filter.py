@@ -3,7 +3,7 @@ import numpy as np
 
 
 def main():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(-1)
 
     if cap.isOpened():
         ret, frame = cap.read()
@@ -16,9 +16,10 @@ def main():
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # Green Color
+        # Green Color BGR
         #        low = np.array([40, 50, 50])
         #        high = np.array([80, 255, 255])
+
 
         # Red Color
         low = np.array([140, 150, 0])
