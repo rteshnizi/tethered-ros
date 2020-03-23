@@ -6,7 +6,7 @@ def main():
     w = 800
     h = 600
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture('photos/long.mp4')
 
     cap.set(3, w)
     cap.set(4, h)
@@ -36,8 +36,8 @@ def main():
 
         eroded = cv2.erode(dilated, np.ones((3, 3), np.uint8), iterations=1)
 
-        img, c, h = cv2.findContours(eroded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+        c = cv2.findContours(eroded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        c = c[0] if len(c) == 2 else c[1]
         cv2.drawContours(frame1, c, -1, (0, 0, 255), 2)
 
 
