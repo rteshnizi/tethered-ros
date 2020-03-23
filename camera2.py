@@ -12,7 +12,7 @@ class OutputForRoute:
         self.obstacles.append(arr)
         
 output = OutputForRoute()
-img = cv2.imread("actual.png")
+img = cv2.imread("dots.png")
 #img = cv2.resize(img1, (0,0), fx=0.15, fy=0.15) 
 original = img.copy()
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
