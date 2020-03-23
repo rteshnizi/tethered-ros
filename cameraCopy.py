@@ -12,7 +12,7 @@ class OutputForRoute:
         self.obstacles.append(arr)
         
 output = OutputForRoute()
-img = cv2.imread("fill.png")
+img = cv2.imread("extra.png")
 #img = cv2.resize(img1, (0,0), fx=0.15, fy=0.15) 
 original = img.copy()
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -88,12 +88,6 @@ while (zero is not None):
             countHeight = countHeight+1
         if (row[0][1] == int(temp[1])): # does whole width
             countWidth = countWidth+1
-
-# img[int(temp[1])+countHeight-1, int(temp[0])] = [205,82,57] #BOTTOM LEFT
-# img[int(temp[1]), int(temp[0])] = [30,186,134] # TOP LEFT
-# img[int(temp[1]), int(temp[0])+countWidth-1] = [144,37,100] #TOP RIGHT
-# img[int(temp[1])+countHeight-1, int(temp[0])+countWidth-1] = [30,186,134] #BOTTOM RIGHT
-
 
     dest.append(str(int(temp[0])+countWidth-1))
     dest.append(str(int(temp[1])+countHeight-1))
